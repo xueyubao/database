@@ -1,0 +1,257 @@
+# 进阶3：排序查询
+
+/*
+引入
+select * from employees;
+语法： 
+select 查询列表
+from 表
+[where 筛选条件]
+order by 排序列表 [asc|desc]
+如果不写 默认是升序
+order by子句中可以支持单个字段，多个字段，表达式，函数和别名
+order by子句一般是放在查询语句的最后面，limit子句除外
+
+*/
+# 案例1： 查询员工信息，要求工资从高到低排序
+SELECT * FROM employees ORDER BY salary DESC;
+SELECT * FROM employees ORDER BY salary ASC;
+# 案例2:  查询部门编号>=90的员工信息按入职时间的先后进行排序 [添加筛选条件]
+SELECT *
+FROM employees
+WHERE department_id >= 90
+ORDER BY hiredate ASC;
+# 案例3: 按照年薪的高低显示员工的信息和年薪【按照表达式排序】
+SELECT *, salary * 12 * (1 + IFNULL(commission_pct,0)) 年薪
+FROM employees
+ORDER BY salary * 12 * (1 + IFNULL(commission_pct,0)) DESC;
+# 案例4：按照年薪的高低显示员工的信息和年薪【按照别名排序】
+SELECT *, salary * 12 * (1 + IFNULL(commission_pct,0)) 年薪
+FROM employees
+ORDER BY 年薪 DESC;
+# 案例5：按照姓名的长度显示员工的姓名和工资【按照函数排序】
+SELECT LENGTH(last_name) 字节长度, last_name, salary
+FROM employees
+ORDER BY LENGTH(last_name) DESC;
+# 案例6：查询员工信息，要求先按照工资排序，再按员工编号排序【按照多个字段】
+SELECT *
+FROM employees
+ORDER BY salary ASC, employee_id DESC;
+
+
+
+#常见函数
+/*
+
+概念：类似于java的方法，将一组逻辑语句封装在方法体中，对外暴露方法名
+好处：1 隐藏了实现细节 2 提高代码的重用性
+调用： select 函数名(实参列表) 【from 表名】
+特点：
+      1 叫什么（函数名）
+      2 干什么（函数功能）
+分类：
+      1 单行函数
+        如concat、 length、 ifnull等
+      2 分组函数
+      功能：做统计使用，又称为统计函数、聚合函数、组函数
+
+
+*/
+
+#一 ： 字符函数
+#length：获取参数值的字节个数
+SELECT LENGTH('john');
+SELECT LENGTH('张三丰hahaha'); 
+
+#concat 拼接字符串
+SELECT CONCAT(last_name, '_', first_name) 姓名 FROM employees;
+
+#upper、lower
+SELECT UPPER('john');
+SELECT LOWER('john');
+#示例：将姓变大写，名变小写，然后拼接
+SELECT CONCAT(UPPER(last_name), '_', LOWER(first_name)) 姓名 FROM employees;
+
+#substr、substring
+注意：索引从1开始
+#截取从指定索引处后面所有字符
+SELECT SUBSTR('李莫愁爱上了陆展元',7) out_put;
+#截取从指定索引字符长度的字符
+SELECT SUBSTR('李莫愁爱上了陆展元',1,3) out_put;
+
+#案例：姓名中首字符大写，其它字符小写然后用_拼接，显示出来
+SELECT CONCAT(UPPER(SUBSTR(last_name,1,1)), '_', LOWER(SUBSTR(last_name,2))) out_put
+FROM employees;
+
+#instr 返回子串中第一次出现的索引，如果找不到返回0
+SELECT INSTR('杨不悔爱上了殷六侠','殷六侠') AS out_put;
+
+#trim
+SELECT TRIM('     张翠山      ') AS out_put;
+SELECT TRIM('a' FROM 'aaaaaaaaaaaa张aa翠山aaa') AS out_put;
+#lpad : 用指定的字符实现左填充指定长度
+SELECT LPAD('殷素素', 10, '*') AS out_put;
+#rpad : 用指定的字符实现右填充指定长度
+
+#replace 替换
+SELECT REPLACE('张无忌爱上了周芷若','周芷若','赵敏');
+
+
+#二： 数学函数
+#round 四舍五入
+SELECT ROUND(-1.55);
+SELECT ROUND(1.553,2);
+#ceil 向上取整
+SELECT CEIL(1.3);
+#floor 向下取整
+SELECT	FLOOR(9.3);
+#truncate 截取
+SELECT TRUNCATE(1.99999,1);
+#mod 取余
+SELECT MOD(6,4);
+
+
+#三： 日期函数
+#now 返回当前系统的日期 包含时间
+SELECT NOW();
+
+#curdate 返回当前系统日期 不包含时间
+SELECT CURDATE();
+
+#curtime 返回当前时间 不包含日期
+SELECT CURTIME();
+
+#可以获取指定的部分，年，月，日，小时，分钟，秒
+SELECT YEAR(NOW()) 年;
+SELECT YEAR('1998-1-1') 年
+SELECT YEAR(hiredate) 年 FROM employees;
+SELECT MONTH(NOW()) 月;
+
+#str_to_date 将日期格式的字符转成指定格式的日期
+SELECT STR_TO_DATE('1998-2-2', '%Y-%c-%d') AS out_put;
+#查询入职日期为1992-4-3的员工的信息
+SELECT * FROM employees WHERE hiredate = STR_TO_DATE('4-3 1992', '%c-%d %Y');
+
+#date_format 将日期转成字符串
+SELECT DATE_FORMAT(NOW(),'%y年%m月%d日') AS out_out;
+
+#查询所有奖金的员工名和入职日期（xx月/xx日 xx年）
+SELECT last_name, DATE_FORMAT(hiredate,'%m月/%d日 %y年') 入职日期
+FROM employees 
+WHERE commission_pct IS NOT NULL;
+
+#四 其它函数
+SELECT VERSION();
+SELECT DATABASE();
+
+#五 流程控制函数
+#1 if函数 if else的效果
+SELECT IF(10 < 5, '大', '小');
+SELECT last_name, commission_pct, IF(commission_pct IS NULL, '没奖金， 呵呵', '有奖金， 嘻嘻') 备注
+FROM employees;
+#2 case 函数的使用一：switch case的效果
+
+
+/*
+
+switch(变量或表达式){
+     case 常量1：语句1 break;
+     ...
+     default: 语句n;break;
+}
+
+mysql中
+
+case要判断的字段或表达式
+when 常量1 then 要显示的值1或语句1
+when 常量2 then 要显示的值2或语句2
+...
+else 要显示的值n或语句n;
+end;
+   
+*/
+
+/* 案例：查询员工的工资：要求
+部门号 = 30，显示的工资为1.1倍
+部门号 = 40，显示的工资为1.2倍
+部门号 = 50，显示的工资为1.3倍
+其它部门不变
+*/
+
+SELECT salary 原始工资, department_id,
+CASE department_id
+WHEN 30 THEN salary * 1.1
+WHEN 40 THEN salary * 1.2
+WHEN 50 THEN salary * 1.3
+ELSE salary
+END AS 新工资
+FROM employees;
+
+# case 函数的使用二：类似于多重if
+/*
+
+java中
+if(条件1){
+   语句1
+else if(条件2){
+   语句2
+}else {
+   语句n
+}
+
+mysql 中
+case 
+when 条件1 then 要显示的值1或语句1
+when 条件2 then 要显示的值2或语句2
+...
+else 要显示的值n或语句n
+end
+*/
+
+#案例: 查询员工的工资的情况
+如果工资 > 20000显示A级别
+         > 15000显示B级别
+         > 10000显示C级别
+         否则显示D级别
+         
+SELECT salary, 
+CASE 
+WHEN salary > 20000 THEN 'A'
+WHEN salary > 15000 THEN 'B'
+WHEN salary > 10000 THEN 'C'
+ELSE 'D'
+END AS 工资级别
+FROM employees;
+
+
+
+# 查询员工号，姓名，工资，以及工资提高百分之而是后的结果
+SELECT employee_id, last_name, salary, salary * 1.2 "new salary"
+FROM employees;
+
+# 将员工的姓名按首字母排序，并且写出长度（length）
+SELECT LENGTH(last_name) 长度, SUBSTR(last_name,1,1) 首字符, last_name
+FROM employees
+ORDER BY 首字符
+
+# 做一个查询产生下面的结果
+<last_name> earns <salary> but wants <salary * 3> dream salary
+SELECT CONCAT(last_name, ' earns ', salary, 'monthly but wants ', salary * 3) AS "dream salary"
+FROM employees
+WHERE salary = 24000;
+
+# 使用case-when 按照下面的而条件
+job  grade
+AD_PRES  A
+ST_MAN B
+IT_PROG C
+
+SELECT job_id AS job,
+CASE job_id
+WHEN 'AD_PRES' THEN 'A'
+WHEN 'ST_MAN' THEN 'B'
+WHEN 'IT_PROG' THEN 'C'
+WHEN 'SA_PRE' THEN 'D'
+WHEN 'ST_CLERK' THEN 'E'
+END AS grade
+FROM employees;
