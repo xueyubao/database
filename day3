@@ -1,0 +1,221 @@
+#二、分组函数
+/*
+功能：用作统计使用，又称为聚合函数或者统计函数或者组函数
+
+分类 sum avg max min count(计算个数)
+
+特点：
+    sum avg 一般用于处理数值型
+    max min count 可以处理任何类型
+    
+    以上分组函数都忽略了null值
+    
+    可以和distinct搭配实现去重的功能
+    
+    count函数的单独介绍
+    一般使用count(*)用作统计行数
+    
+    和分组函数一同查询的字段要求是group by后的字段
+    
+*/
+
+#1 简单的使用
+SELECT SUM(salary) FROM employees;
+SELECT AVG(salary) FROM employees;
+SELECT MAX(salary) FROM employees;
+SELECT MIN(salary) FROM employees;
+SELECT COUNT(salary) FROM employees;
+
+SELECT SUM(salary) 和, AVG(salary) 平均, MAX(salary) 最大, MIN(salary) 最小, COUNT(salary) 人数 
+FROM employees;
+
+#2 参数支持类型
+SELECT SUM(last_name), AVG(last_name) FROM employees;
+
+#3 是否忽略null
+SELECT SUM(commission_pct), AVG(commission_pct) FROM employees;
+
+#4 和distinct搭配
+SELECT SUM(DISTINCT salary), SUM(salary) FROM employees;
+SELECT COUNT(DISTINCT salary), COUNT(salary) FROM employees;
+
+#5 count函数的详细介绍
+SELECT COUNT(salary) FROM employees;
+SELECT COUNT(*) FROM employees; 
+SELECT COUNT(1) FROM employees;
+
+
+# 效率：
+MYISAM 存储引擎下 , COUNT(*)的效率高
+INNODB 存储引擎下 , COUNT(*) 和 COUNT(1)的效率差不多 比 COUNT(字段)要搞一些
+
+# 查询员工表中的最大入职时间和最小入职时间的相差天数
+SELECT DATEDIFF(MAX(hiredate), MIN(hiredate)) diffrence 
+FROM employees;
+
+# 查询部门编号为90的员工个数
+SELECT COUNT(*) 
+FROM employees 
+WHERE department_id = 90;
+
+
+
+
+
+
+
+
+
+
+
+
+# 进阶5 分组查询
+/*语法：
+select 分组函数，列(要求出现在group by的后面)
+from 表
+[where 筛选条件]
+group by 分组的列表
+[order by 子句]
+
+注意：查询列表必须特殊，要求是分组函数和group by后出现的字段
+
+特点：1 分组查询中的筛选条件为两类
+                        数据源                位置                    关键字
+        分组前筛选      原始表                group by子句的前面      where
+        分组后筛选      分组后的结果集        group by子句的后面      having
+        
+        分组函数做条件 肯定是放在having子句中
+        能用分组前筛选的就优先考虑分组前筛选
+        
+      2 group by子句支持单个字段分组，多个字段分组（多个字段之间用，隔开没有顺序要求），表达式或者函数（用得较少）
+      3 也可以添加排序(排序放在整个分组查询的最后)
+        
+
+*/
+
+# 引入： 查询每个部门的平均工资
+SELECT AVG(salary) FROM
+
+# 查询每个工种的最高工资
+SELECT MAX(salary), job_id
+FROM employees
+GROUP BY job_id;
+
+# 查询每个位置上的部门个数
+SELECT COUNT(*), location_id
+FROM departments
+GROUP BY location_id;
+
+# 添加筛选条件
+# 案例1 查询邮箱中包含a字符的，每个部门的平均工资
+SELECT AVG(salary), department_id
+FROM employees
+WHERE email LIKE '%a%'
+GROUP BY department_id;
+
+# 案例2 查询有奖金的每个领导手下员工的最高工资
+SELECT MAX(salary), manager_id
+FROM employees
+WHERE commission_pct IS NOT NULL
+GROUP BY manager_id;
+
+# 添加复杂的筛选条件
+# 案例1 查询哪个部门的员工个数>2
+# 第一步 查询每个部门的员工个数
+SELECT COUNT(*), department_id
+FROM employees
+GROUP BY department_id
+# 第二步 根据第一步的结果进行筛选，查询哪个部门的员工个数 > 2
+SELECT COUNT(*), department_id
+FROM employees
+GROUP BY department_id
+HAVING COUNT(*) > 2;
+
+# 案例2 查询每个工种有奖金的员工的最高工资 > 12000的工种编号和最高工资
+# 第一步 查询每个工种有奖金的员工的最高工资
+SELECT MAX(salary), job_id
+FROM employees
+WHERE commission_pct IS NOT NULL
+GROUP BY job_id;
+# 第二步 根据第一步结果继续筛选, 最高工资 > 12000
+SELECT MAX(salary), job_id
+FROM employees
+WHERE commission_pct IS NOT NULL
+GROUP BY job_id
+HAVING MAX(salary) > 12000;
+
+# 案例3 查询领导编号 > 102 的每个领导手下的最低工资 > 5000的领导编号是哪个，以及其最低工资
+# 第一步 查询每个领导手下的员工固定最低工资
+SELECT MIN(salary), manager_id 
+FROM employees
+GROUP BY manager_id;
+# 第二步 添加筛选条件：编号 > 102
+SELECT MIN(salary), manager_id
+FROM employees
+WHERE manager_id > 102
+GROUP BY manager_id;
+# 第三步 添加筛选条件：最低工资 > 5000
+SELECT MIN(salary), manager_id
+FROM employees
+WHERE manager_id > 102
+GROUP BY manager_id
+HAVING MIN(salary) > 5000;
+
+# 按表达式或函数分组
+# 案例： 按员工姓名的长度分组，查询每一组的员工个数，筛选员工个数 > 5的有哪些
+# 第一步 查询每个长度的员工个数
+SELECT COUNT(*), LENGTH(last_name) len_name
+FROM employees
+GROUP BY LENGTH(last_name);
+# 第二步 添加筛选条件
+SELECT COUNT(*) c , LENGTH(last_name) len_name
+FROM employees
+GROUP BY LENGTH(last_name)
+HAVING c > 5;
+
+# 按多个字段分组
+# 案例： 查询每个部门每个工种的员工的平均工资
+SELECT AVG(salary), department_id, job_id
+FROM employees
+GROUP BY job_id, department_id;
+
+# 添加排序
+# 案例： 查询每个部门每个工种的员工的平均工资，并且按平均工资的高低显示
+SELECT AVG(salary) 平均工资, department_id, job_id
+FROM employees
+WHERE department_id IS NOT NULL
+GROUP BY job_id, department_id
+HAVING 平均工资 > 10000
+ORDER BY AVG(salary) DESC;
+
+
+# 练习
+#1 查询各job_id的员工工资的最大值，最小值，平均值，总和，并且按照job_id 升序
+SELECT MAX(salary),MIN(salary),AVG(salary), SUM(salary), job_id
+FROM employees
+GROUP BY job_id
+ORDER BY job_id ASC;
+
+#2 查询员工最高和最低工资的差距(DIFFETENCE)
+SELECT MAX(salary) - MIN(salary) difference
+FROM employees;
+
+#3 查询各个管理者手下的员工的最低工资，其中最低工资不能低于6k，没有管理者的员工不计算在内
+SELECT MIN(salary), manager_id
+FROM employees
+WHERE manager_id IS NOT NULL 
+GROUP BY manager_id
+HAVING MIN(salary) >= 6000;
+
+#4 查询所有部门的编号，员工数量和平均值，并按平均工资降序
+SELECT department_id, COUNT(*), AVG(salary) a
+FROM employees
+GROUP BY department_id
+ORDER BY AVG(salary) DESC;
+
+#5 选择具有各个job_id的员工人数
+SELECT COUNT(*) 个数, job_id
+FROM employees
+GROUP BY job_id;
+
+
