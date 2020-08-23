@@ -1,0 +1,529 @@
+# DDL 
+/*
+数据定义语言
+库和表的管理
+一、 库的管理
+创建、修改、删除
+
+二、 表的管理
+创建、修改、删除
+
+
+创建：create
+修改：alter
+删除：drop
+
+*/
+
+# 一、库的管理
+#1、 库的创建
+/*
+语法：
+create database 库名
+*/
+CREATE DATABASE IF NOT EXISTS books;
+
+#2、 库的修改(不安全了)
+RENAME DATABASE books TO 新库名; 
+
+# 更改库的字符集
+ALTER DATABASE books CHARACTER SET gbk;
+
+# 库的删除
+DROP DATABASE IF EXISTS books;
+
+
+# 二、 表的管理
+# 1 表的创建
+/*
+create table 表名(
+	列名 列的类型【(长度) 约束】,
+	列名 列的类型【(长度) 约束】,
+	列名 列的类型【(长度) 约束】,
+	列名 列的类型【(长度) 约束】,
+	列名 列的类型【(长度) 约束】
+	
+	
+
+*/
+
+# 案例： 创建表book
+CREATE TABLE book(
+	id INT, #编号
+	bName VARCHAR(20), #图书名
+	price DOUBLE, #价格
+	authorId INT, #作者编号
+	publishDate DATETIME #出版日期
+);
+DESC book;
+
+
+# 案例： 创建表author
+CREATE TABLE author(
+	id INT,
+	au_name VARCHAR(20),
+	nation VARCHAR(10)
+)
+DESC author
+
+# 2. 表的修改
+# 修改类名
+ALTER TABLE book CHANGE COLUMN publishdate pubDate DATETIME;
+# 修改列的类型或约束
+ALTER TABLE book MODIFY COLUMN pubdate TIMESTAMP;
+# 添加新列
+ALTER TABLE author ADD COLUMN annual DOUBLE;
+# 删除列
+ALTER TABLE author DROP COLUMN annual
+# 修改表名
+ALTER TABLE author RENAME TO book_author
+
+# 3. 表的删除
+DROP TABLE book_author;
+
+SHOW TABLES;
+
+# 通用的写法
+DROP DATABASE IF EXISTS 旧库名;
+CREATE DATABASE 新库名;
+
+DROP TABLE IF EXISTS 旧表名
+CREATE TABLE 表名();
+
+
+# 4. 表的复制
+INSERT INTO author VALUES
+(1, '村上春树', '日本'),
+(2, '莫言','中国'),
+(3, '冯唐','中国'),
+(4, '金庸','中国');
+
+# 仅仅复制表的结构
+CREATE TABLE copy LIKE author
+
+# 复制表的结构+数据
+CREATE TABLE copy2
+SELECT * FROM author;
+
+# 只复制部门数据
+CREATE TABLE copy3
+SELECT id, au_name
+FROM author
+WHERE nation = '中国';
+
+# 仅仅复制部分字段
+CREATE TABLE copy4
+SELECT id, au_name
+FROM author
+WHERE 1;
+
+
+# 练习
+# 1 创建表dept1
+CREATE TABLE dept1(
+	id INT(7),
+	NAME VARCHAR(25)
+);
+
+# 将表departments中的数据插入新表dept2中
+CREATE TABLE dept2
+SELECT department_id, department_name
+FROM myemployees.departments
+
+# 创建表emp5
+CREATE TABLE emp5(
+id INT(7),
+first_name VARCHAR(25),
+last_name VARCHAR(25),
+dept_id INT(7)
+);
+
+# 将last_name的长度修改成50
+ALTER TABLE emp5 MODIFY COLUMN last_name VARCHAR(50);
+
+# 根据表employees创建employees2
+CREATE TABLE employees2 LIKE myemployees.`employees`;
+
+# 删除表emp5
+DROP TABLE IF EXISTS emp5;
+
+# 将表employee2命名为emp5
+ALTER TABLE employees2 RENAME TO emp5
+
+# 在表dept和emp5中添加新列test_column，并且检查所作的操作
+ALTER TABLE emp5 ADD COLUMN test_colunm INT;
+
+# 直接删除emp5中的dept_id
+ALTER TABLE emp5 DROP COLUMN test_colunm;
+
+
+
+
+# 常见的数据类型
+/*
+数值型：
+	整型
+	小数：
+		定点数
+		浮点数
+字符型：
+	较短的文本：char, varchar
+	较长的文本：text, blob(较长的二进制数据)
+	
+日期型：
+	
+*/
+
+# 一、 整型
+/*
+分类：
+tinyint smallint  mediumint int/Integer bigint
+1       2         3         4           8
+
+特点：
+如果不设置无符号还是有符号，默认是有符号，如果想设置无符号，要添加unsigned关键字
+如果插入的数值超出了整型的范围，会报out of range异常，并且插入临界值
+如果不设置长度，会有默认的长度 长度代表了显示的最大宽度，如果不够会有0在左边填充 搭配zerofill
+
+
+
+*/
+
+# 1. 如何设置无符号和有符号
+CREATE TABLE tab_int(
+	t1 INT,
+	t2 INT UNSIGNED
+);
+
+INSERT INTO tab_int VALUES(-12345);
+
+DROP TABLE IF EXISTS tab_int;
+
+# 二、 小数
+/*
+分类
+1. 浮点型
+float(M, D)
+double(M, D)
+2. 定点型
+dec(M, D)
+decimal(M, D)
+
+特点
+M和D
+M: 整数部位+小数部位
+D：小数部位
+如果超过范围，则插入临界值
+
+M和D都可以省略
+如果是decimal,则M默认为10，D默认为0
+如果是float和double，则会根据擦汗如的数值的精度来决定精度
+
+定点型的精确度较高，如果要求插入数值的精度较高如货币预算等则考虑定点型
+
+
+
+
+*/
+
+CREATE TABLE tab_float(
+	f1 FLOAT(5,2),
+	f2 DOUBLE(5,2),
+	f3 DECIMAL(5,2)
+);
+
+SELECT * FROM tab_float;
+INSERT INTO tab_float VALUES(123.456,123.456,123.456);
+INSERT INTO tab_float VALUES(123.45,123.45,123.45);
+
+# 原则：
+/*
+所选择的类型越简单越好，能保存数值的类型越小越好
+*/
+
+# 三、 字符型
+/*
+较短的文本：
+char
+varchar
+
+其它：
+binary和varbinary用于保存较短的二进制
+enum用于保存枚举
+set用于保存集合
+
+特点：    
+          写法             M的意思                            特点                 空间的耗费   效率
+char      char(M)          最大的字符数 可以省略默认为1       固定长度的字符        比较耗费     高
+varchar   varchar(M)       最大的字符数 不可以省略            可变长度的字符        比较节省     低
+
+较长的文本
+text
+blob（较大的二进制）
+
+
+*/
+
+CREATE TABLE tab_char(
+	c1 ENUM('a','b','c')
+);
+
+INSERT INTO tab_char VALUES('a');
+INSERT INTO tab_char VALUES('b');
+INSERT INTO tab_char VALUES('c');
+INSERT INTO tab_char VALUES('m');
+INSERT INTO tab_char VALUES('A');
+
+SELECT * FROM tab_char;
+
+
+# 四、 日期型
+
+/*
+分类
+date 只保存日期
+time 只保存时间
+year 只保存年
+datetime 保存日期+时间
+timestamp 保存日期+时间
+
+特点
+              字节         范围               时区等的影响
+datetime      8            1000 - 9999        不
+timestamp     4            1970 - 2018        受
+*/
+CREATE TABLE tab_date(
+	t1 DATETIME,
+	t2 TIMESTAMP
+);
+
+INSERT INTO tab_date VALUES(NOW(),NOW());
+SELECT * FROM tab_date;
+
+SHOW VARIABLES LIKE 'time_zone';
+
+
+
+
+
+
+# 常见约束
+/*
+含义：一种限制，用于限制表中的数据，为了保证表中的数据准确和可靠性
+
+分类：六大约束
+	not null：非空，用于保证该字段的值不能为空
+	          比如姓名、学号等
+	default： 默认，用于保证该字段有默认值
+	          比如性别（为了省事）
+	primary key： 主键，用于保证该字段的值具有唯一性，并且非空
+	              比如学号、员工编号等
+	unique：  唯一，用于保证该字段的值具有唯一性，可以为空
+	          比如 座位号 家庭住址
+	check：   检查约束【mysql中不支持】
+	          比如年龄、性别
+	foreign key： 外键，用于限制两个表的关系，用于保证该字段的值必须来自主表的关联列的值
+	              在从表添加外键约束，用于引用主表中某列的值
+	              比如学生表的专业编号，员工表的部门编号，员工表的工种编号
+	           
+添加约束的时机：
+	创建表时
+	修改表时
+
+约束的添加分类：
+	列级约束:
+		六大约束语法上都支持，但是外键约束没有效果
+	表级约束
+		除了非空和默认其它的都支持
+		
+
+
+主键和唯一的大对比：
+                    保证唯一性          是否允许为空          一个表中可以有几个    是否允许组合
+	主键        是                  不允许                至多有一个             允许 但不推荐
+	唯一        是                  允许                  可以有多个             允许 但不推荐
+	
+	insert into major values(1, 'java');
+	insert into major values(2, 'h5');
+	insert into stuinfo values(1, 'john','男',null,19,1);
+	insert into sutinfo values(2, 'lili','男',null,19,2);
+		
+		
+		
+外键：
+	1. 要求在从表设置外键关系
+	2. 从表的外键列的类型和主表的关联列大的类型要求一致和兼容，名称无要求
+	3. 要求主表的关联列必须有一个key（一般是主键或唯一）
+	4. 要求插入数据时，先插入主表再插入从表
+	   删除数据时先删除从表，再删除主表
+*/
+CREATE TABLE 表名 (
+  字段名 字段类型 列级约束,
+  字段名 字段类型,
+  表记约束
+) #一、 创建表时添加约束
+#1 添加列级约束
+/*
+语法：
+直接在字段名和类型后面追加 约束类型即可
+
+
+*/
+CREATE DATABASE students ;
+
+CREATE TABLE stuinfo(
+	id INT PRIMARY KEY, # 主键
+	stuName VARCHAR(20) NOT NULL, # 非空
+	gender CHAR(1) CHECK (gender = '男' OR gender = '女'), # 检查
+	seat INT UNIQUE,   # 唯一
+	age INT DEFAULT 18,  # 默认约束
+	majorId INT REFERENCES major(id)   # 外键
+
+);
+
+CREATE TABLE major(
+	id INT PRIMARY KEY,
+	majorName VARCHAR(20)
+);
+
+# 查看stuinfo表中所有的索引，包括主键、外键、唯一
+SHOW INDEX FROM stuinfo;
+
+
+# 2. 添加表记约束
+/*
+语法： 在各个字段的最下面
+[constraint 约束名] 约束类型(字段名)
+
+*/
+DROP TABLE IF EXISTS stuinfo;
+
+CREATE TABLE stuinfo(
+	id INT,
+	stuname VARCHAR(20),
+	gender CHAR(1),
+	seat INT,
+	age INT,
+	majorid INT,
+	
+	CONSTRAINT pk PRIMARY KEY(id),   # 主键
+	CONSTRAINT uq UNIQUE(seat), # 唯一性
+	CONSTRAINT ck CHECK(gender = '男' OR gender = '女'), #检查
+	CONSTRAINT fk_sutinfo_major FOREIGN KEY(majorid) REFERENCES major(id)  # 外键
+);
+
+SHOW INDEX FROM stuinfo;
+
+# 通用的写法：（★）
+CREATE TABLE IF NOT EXISTS stuinfo(
+	id INT PRIMARY KEY,
+	stuname VARCHAR(20) NOT NULL,
+	sex CHAR(1),
+	age INT DEFAULT 18,
+	seat INT UNIQUE,
+	majorid INT,
+	CONSTRAINT fk_stuinfo_major FOREIGN KEY(majorid) REFERENCES major(id)
+);
+
+# 二、 修改表时添加约束
+
+/*
+1、 添加的是列级约束
+alter table 表名 modify column 字段名 字段类型 新约束
+
+2、 添加表级约束
+alter table 表名 add [constraint 约束名]  约束类型(字段名)  [外键的引用]
+
+
+*/
+
+DROP TABLE IF EXISTS stuinfo;
+CREATE TABLE stuinfo(
+	id INT,
+	stuname VARCHAR(20),
+	gender CHAR(1),
+	seat INT,
+	age INT,
+	majorid INT
+);
+# 1. 添加非空约束
+ALTER TABLE stuinfo MODIFY COLUMN stuname VARCHAR(20) NOT NULL;
+
+DESC stuinfo;
+
+# 2. 添加默认约束
+ALTER TABLE stuinfo MODIFY COLUMN age INT DEFAULT 18;
+
+# 3. 添加主键
+# 第一种：列级约束
+ALTER TABLE stuinfo MODIFY COLUMN id INT PRIMARY KEY;
+# 第二种：表级约束
+ALTER TABLE stuinfo ADD PRIMARY KEY(id);
+
+# 4. 添加唯一
+# 第一种：列级约束
+ALTER TABLE stuinfo MODIFY COLUMN seat INT UNIQUE;
+# 第二种：表级约束
+ALTER TABLE stuinfo ADD UNIQUE(seat);
+
+# 5. 添加外键
+ALTER TABLE stuinfo ADD CONSTRAINT fk_stuinfo_major FOREIGN KEY(majorid) REFERENCES major(id);
+
+
+# 三、 修改表时删除约束
+# 1. 删除非空约束：
+ALTER TABLE stuinfo MODIFY COLUMN stuname VARCHAR(20) NULL;
+# 2. 删除默认约束
+ALTER TABLE stuinfo MODIFY COLUMN age INT;
+# 3. 删除主键
+ALTER TABLE stuinfo DROP PRIMARY KEY;
+# 4. 删除唯一键
+ALTER TABLE stuinfo DROP INDEX seat;
+# 5. 删除外键
+ALTER TABLE stuinfo DROP FOREIGN KEY fk_stuinfo_major;
+SHOW INDEX FROM stuinfo;
+
+
+# 测试
+#1 向表emp2的id列中添加primary key约束(my_emp_id_pk)
+ALTER TABLE emp2 MODIFY COLUMN id INT PRIMARY KEY;
+ALTER TABLE emp2 ADD CONSTRAINT my_emp_id_pk PRIMARY KEY(id);
+
+#2 向表emp2中添加列dept_id,并在其中定义foreign key约束，与之相关联的列时dept2表中的id列
+ALTER TABLE emp2 ADD COLUMN dept_id INT
+ALTER TABLE emp2 ADD CONSTRAINT fk_emp2_dept2 FOREIGN KEY(dept_id) REFERENCES dept2(id);
+
+#                   位置                  支持的约束类型                   是否可以起约束名
+# 列级约束         列的后面               语法都支持，但外键没有效果       不可以 
+# 表级约束         所有列的下面           默认和非空不支持，其它支持       可以（主键没有效果）
+
+
+# 标识列
+/*
+又称为自增长列
+含义：可以不用手动的插入值，系统提供默认的序列值
+
+特点：
+1、 标识列必须和主键搭配吗？ 不一定，但是要求是一个key
+2、 一个表可以有几个标识列？ 只能一个
+3、 标识列的类型    只能是数值型
+4、 标识列可以通过 set auto_increment_increment = 3设置步长
+可以通过手动插入值，设置起始值
+
+
+*/
+# 一、 创建表时设置标识列
+CREATE TABLE tab_identity(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+	NAME VARCHAR(20)
+);
+
+INSERT INTO tab_identity VALUES(NULL, 'john');
+SELECT  * FROM tab_identity;
+
+
+# 二、 修改表时设置标识列
+ALTER TABLE tab_identity MODIFY COLUMN id INT PRIMARY KEY AUTO_INCREMENT;
+
+# 三、 修改表时删除标识列
+ALTER TABLE tab_identity MODIFY COLUMN id INT;
