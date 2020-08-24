@@ -1,0 +1,229 @@
+# 视图
+/*
+含义： 虚拟表 和普通表一样使用
+mysql5.1版本出现的新特性，是通过表动态生成的数据
+比如： 舞蹈班和普通班的对比
+                                 是否实际占用物理空间                  使用
+视图 create view                       没有，只是保存了sql逻辑         增删改查，只是一般不去增删改
+表   create table                      占用，保存了数据                增删改查
+*/
+
+# 查询姓张的学生名和专业名
+SELECT stuname, majorname
+FROM stuinfo s
+INNER JOIN major m ON s.mojorid = m.id
+WHERE s.`stuname` LIKE '%张';
+
+CREATE VIEW v1
+AS
+SELECT stuname, mojorid
+FROM stuinfo s
+INNER JOIN major m ON s.majorid = m.id;
+
+SELECT * FROM v1 WHERE stuname LIKE '%张';
+
+
+# 创建视图
+/*
+语法：
+create view 视图名
+as
+查询语句
+*/
+
+# 1 查询姓名中包含a字符的员工名、部门名和工种信息
+#创建
+CREATE VIEW myv1
+AS
+SELECT last_name, department_name,job_title
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+JOIN jobs j ON j.job_id = e.job_id;
+
+#使用
+SELECT * FROM myv1 WHERE last_name LIKE '%a%';
+
+# 2 查询各部门的平均工资级别
+#创建视图查看每个部门的平均工资
+CREATE VIEW myv2
+AS 
+SELECT AVG(salary) ag, department_id
+FROM employees
+GROUP BY department_id;
+#使用
+SELECT myv2.`ag`,g.grade_level
+FROM myv2
+JOIN job_grades g
+ON myv2.`ag` BETWEEN g.lowest_sal AND g.highest_sal;
+
+# 3 查询平均工资最低的部门信息
+SELECT * FROM myv2 ORDER BY ag LIMIT 1;
+
+# 4 查询平均工资最低的部门名和工资
+CREATE VIEW myv3
+AS
+SELECT * FROM myv2 ORDER BY ag LIMIT 1;
+
+SELECT d.*, m.ag
+FROM myv3 m
+JOIN departments d
+ON m.`department_id` = d.department_id;
+
+
+# 二、 视图的修改
+# 方式一：
+/*
+create or replace view 视图名
+as
+查询语句;
+
+*/
+CREATE OR REPLACE VIEW myv3
+AS 
+SELECT AVG(salary),job_id
+FROM employees
+GROUP BY job_id;
+
+SELECT * FROM myv3;
+
+# 方式二：
+/*
+alter view 视图名
+as
+查询语句
+*/
+
+
+# 三、 删除视图
+/*
+语法：
+drop view 视图名, 视图名....;
+*/
+
+DROP VIEW myv1,myv2,myv3;
+
+# 四、 查看视图
+DESC 视图名
+
+
+# 练习
+
+# 1创建视图emp_v1，要求查询电话号码以’011‘开头的员工姓名和工资，邮箱
+CREATE OR REPLACE VIEW emp_v1
+AS 
+SELECT last_name, salary, email
+FROM employees
+WHERE phone_number LIKE '011%';
+
+SELECT * FROM emp_v1;
+
+# 2创建视图emp_v2，要求查询部门的最高工资高于12000的部门信息
+CREATE OR REPLACE VIEW emp_v2
+AS
+SELECT MAX(salary) mx_dep, department_id
+FROM employees
+GROUP BY department_id
+HAVING MAX(salary) > 12000;
+
+SELECT * FROM emp_v2;
+# 不用视图
+SELECT d.*, m.mx_dep
+FROM departments d
+JOIN(
+	SELECT MAX(salary) mx_dep, department_id
+	FROM employees
+	GROUP BY department_id
+	HAVING MAX(salary) > 12000
+) m
+ON m.department_id = d.department_id;
+# 使用视图
+SELECT d.*, m.mx_dep
+FROM departments d
+JOIN emp_v2 m
+ON m.department_id = d.department_id;
+
+
+
+# 五、 视图的更新
+CREATE OR REPLACE VIEW myv1
+AS
+SELECT last_name, email, salary * 12 * (1 + IFNULL(commission_pct,0)) "annual salary"
+FROM employees;
+
+SELECT * FROM myv1;
+
+CREATE OR REPLACE VIEW myv1
+AS
+SELECT last_name, email
+FROM employees;
+# 1. 插入
+INSERT INTO myv1 VALUES('张飞','zf@qq.com');
+
+# 2. 修改
+UPDATE myv1 SET last_name = '张无忌' WHERE last_name = '张飞';
+
+# 3. 删除
+DELETE FROM myv1 WHERE last_name = '张无忌';
+
+# 具备以下特点的视图是不能更新的
+/*
+1: 包含以下关键字的sql语句： 分组函数、distinct、group by、having、union或者union all
+2：常量视图
+3：select中包含子查询
+4：join
+5：from一个不能更新的视图
+6：where子句中的子查询引用了from子句的表
+*/
+
+
+
+
+
+
+
+
+
+# 练习题
+
+# 1、 创建表book表，字段如下
+	bid 整型 要求主键
+	bname 字符型 要求设置唯一键，并非空
+	price 浮点型 要求有默认值10
+	btypeId 类型编号，要求引用bookType表的 id字段
+已知bookType表（不用创建），字段如下
+id
+NAME
+
+CREATE TABLE Book(
+	bid INT PRIMARY KEY,
+	bname VARCHAR(20) UNIQUE NOT NULL,
+	price FLOAT DEFAULT 10,
+	btypeId INT,
+	FOREIGN KEY(btypeId) REFERENCES bookType(id)
+);
+
+
+# 2、 开启事务 向表中插入一行数据并结束
+SET autocommit = 0;
+INSERT INTO book(bid, bname, pricem, btypeId)
+VALUES(1,'小李飞刀', 100,1);
+
+COMMIT;
+
+# 3、 创建视图，实现查询价格大于100的书名和类型名
+CREATE VIEW myv1
+AS 
+SELECT bname, NAME
+FROM book b
+JOIN bookType t ON b.btypeId = t.id
+WHERE price > 100;
+# 4、 修改视图，实现查询价格在90-120之间的书名和价格
+CREATE OR REPLACE VIEW myv1
+AS 
+SELECT bname, price 
+FROM book
+WHERE price BETWEEN 90 AND 120;
+# 5 删除刚才建的视图
+DROP VIEW myv1;
+
+	
