@@ -1,0 +1,106 @@
+TCL语言
+/*
+Transaction Control Language 事务控制语言
+
+事务： 一个或一组sql语句组成的执行单元，这个执行单元要么全部执行，要么全部不执行
+
+案例：转账
+张三丰1000
+郭襄1000
+
+update 表 set 张三丰的余额 = 500 where name = '张三丰'
+update 表 set 郭襄的余额 = 1500 where name = '郭襄'
+
+*/
+
+SHOW ENGINES;
+
+事务的ACID属性
+1. 原子性： 是指事务是一个不可分割的工作单位，事务中的操作要么都发生要么都不发生
+            # 一个事务不可再分割，要么都执行要么都不执行
+2. 一致性： 事务必须使数据库从一个一致性状态转到另一个一致性状态
+	    # 一个事务执行会使数据从一个一致状态切换到另一个一致状态
+3. 隔离性： 事务的隔离性是指一个事务的执行不能被其他事务干扰，即一个事务内部的操作及使用的数据对
+	    并发的其它事务是隔离的，并发执行的各个事务之间不能互相干扰
+	    # 一个事务的执行不受其它事务的干扰	    
+4. 持久性： 持久性是指一个事务一旦被提交，它对数据库中的数据的改变是永久性的，接下来的其他操作和
+	    数据库故障不应该对其又任何影响
+	    # 一个事务一旦提交，则会永久的改变数据库的数据
+
+
+# 事物的创建
+/*
+隐式事务： 事务没有明显的开启和结束的标记
+	   比如insert update delete 语句
+	   
+显示事务： 事务具有明显的开启和结束的标记
+	   前提： 必须先设置自动提交功能为禁用
+	   
+set autocommit = 0;
+步骤一： 开启事务
+set autocommit = 0;
+start transaction; 可选的
+步骤二： 编写事务中的sql语句（select insert update delete）
+语句1;
+语句2;
+...
+步骤三： 结束事务
+	 commit; 提交事务
+	 rollback; 回滚事务
+	 
+	 
+savepoint 节点名：设置保存点
+	 
+事务的隔离级别：
+			脏读 			不可重复读		幻读	
+read uncommitted        无法避免                无法避免                无法避免
+read committed          可避免                  无法避免                无法避免
+repeatable read         可避免                  可避免                  无法避免
+serializable            可避免                  可避免                  可避免
+
+mysql中默认第三个隔离级别 repeatable read
+oracle中默认第二个  read committed
+
+查看隔离级别
+select @@tx_isolation
+设置隔离级别
+set session|global  transaction isolation level 隔离级别
+
+
+*/
+
+DROP TABLE IF EXISTS account
+CREATE TABLE account(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+	username VARCHAR(20),
+	balance DOUBLE
+);
+
+INSERT INTO account(username, balance)
+VALUES('张无忌',1000),('赵敏',1000);
+
+# 演示使用的步骤
+SET autocommit = 0;
+START TRANSACTION;
+# 编写一组事务的语句
+UPDATE account SET balance = 500 WHERE username = '张无忌';
+UPDATE account SET balance = 1500 WHERE username = '赵敏';
+
+# 结束事务
+COMMIT;
+SELECT * FROM account;
+# 回滚事务
+ROLLBACK;
+
+
+#演示savepoint的引用
+SET autocommit = 0;
+START TRANSACTION;
+
+SELECT * FROM account;
+DELETE FROM account WHERE id = 1;
+SAVEPOINT a; # 设置保存点
+DELETE FROM account WHERE id = 2;
+ROLLBACK TO a; # 回滚到保存点 1号删除了而2 号没有
+SELECT * FROM account;
+
