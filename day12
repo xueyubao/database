@@ -104,3 +104,7 @@ DELETE FROM account WHERE id = 2;
 ROLLBACK TO a; # 回滚到保存点 1号删除了而2 号没有
 SELECT * FROM account;
 
+
+
+delete和truncate在事务中的区别
+delete可以回滚而truncate不行
