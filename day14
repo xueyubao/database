@@ -1,0 +1,335 @@
+# 变量
+/*
+系统变量：
+	全局变量
+	会话变量
+
+自定义变量：
+	用户变量
+	局部变量
+
+*/
+
+# 系统变量
+/*说明： 变量由系统变量，不是用户定义的，属于服务器层面
+使用的语法：
+1、 查看所有的系统变量
+show global || session variables;
+
+2、 查看满足条件的部门变量
+show global || session variables like '%char%';
+
+3、查看指定的某个系统变量的值
+select @@global || session.系统变量名
+
+4、为某个系统变量赋值
+set global || session 系统变量名 = 值
+set @@global || session.系统变量名 = 值
+注意：  如果是全局级别需要加global
+	如果是会话级别，则需要加session
+	如果不写则默认session
+
+*/
+
+# 1 全局变量
+/*
+作用域： 服务器每次启动将为所有的全局变量赋初始值，针对于所有的会话（连接）有效，但是不能跨重启
+*/
+# 查看所有的全局变量
+SHOW GLOBAL VARIABLES;
+
+# 查看部分的全局变量
+SHOW GLOBAL VARIABLES LIKE '%char%';
+
+# 查看指定的全局变量的值
+SELECT @@global.autocommit;
+SELECT @@tx_isolation;
+
+# 为某个指定的全局变量赋值
+SET @@global.autocommit = 0;
+
+# 2 会话变量
+/*
+作用域：仅仅针对当前会话（连接）有效
+*/
+
+
+
+# 二、 自定义变量
+/*
+说明：变量是用户定义的，不是由系统的
+使用步骤：
+声明
+赋值
+使用（查看、比较、运算等）
+*/
+# 1、 用户变量
+/*
+作用域：针对于当前会话（连接）有效，同于会话变量的作用域
+应用在任何地方，也就是begin end里面或者外面都行
+*/
+
+# 声明并初始化(三种)
+SET @用户变量名 = 值;
+SET @用户变量名: = 值;
+SELECT @用户变量名: = 值;
+
+# 赋值（更新用户变量的值）
+方式一： 通过set或select
+	SET @用户变量名 = 值;
+	SET @用户变量名: = 值;
+	SELECT @用户变量名: = 值;
+
+
+方式二： SELECT 字段 INTO 变量名
+	 FROM 表
+	 
+# 案例
+SET @name = 'john';
+SET @name = 100;
+SET @count = 1;
+SELECT COUNT(*) INTO @count
+FROM employees
+
+# 使用（查看用户变量的值）
+SELECT @用户变量名;
+
+SELECT @count;
+	 
+# 2、局部变量
+/*
+作用域：仅仅在定义它的begin end中有效
+	应用在begin end中的第一句话！！！
+*/
+
+# 声明
+DECLARE 变量名 类型;
+DECLARE 变量名 类型 DEFAULT 值;
+
+# 赋值
+方式一：
+	通过set或select
+	SET 局部变量名 = 值;或
+	SET 局部变量名: = 值;或
+	SELECT @局部变量名: = 值;
+方式二：
+	通过select INTO
+	SELECT 字段 INTO 局部变量名
+	FROM 表
+	
+#对比 用户变量和局部变量
+#                  作用域         定义和使用中的位置                       语法
+#用户变量          当前会话       会话中的任何地方                        声明的语法不同，必须加@符号
+#局部变量         begin end中     只能在begin end中，且为第一句话         一般不用加@符号，需要限定类型
+
+
+
+# 案例： 声明两个变量并赋初始值，求和，并且打印
+SET @m = 1;
+SET @n = 2;
+SET @sum = @n + @m;
+SELECT @sum;
+
+# 局部变量
+DECLARE m INT DEFAULT 1;
+DECLARE n INT DEFAULT 2;
+DECLARE SUM INT;
+SET SUM = m + n;
+SELECT SUM;
+# 随便找个地方这么写是不允许的 要放在begin end中
+
+
+# 存储过程和函数
+/*
+存储过程和函数，类似于java的方法
+好处：  提高代码的重用性
+	简化操作
+	减少了编译次数并且减少了和数据库服务器的连接次数，提高了效率
+*/
+# 存储过程
+/*
+含义： 一组预先编译好的sql语句的集合，理解成批处理语句
+好处：  提高代码的重用性
+	简化操作
+	减少了编译次数并且减少了和数据库服务器的连接次数，提高了效率
+*/
+
+# 一、 创建语法
+CREATE PROCEDURE 存储过程名（参数列表）
+BEGIN
+	存储过程体（一组合法的sql语句）
+END
+注意：
+1、 参数列表包含三部分
+参数模式 参数名 参数类型
+举例：
+IN stuname VARCHAR(20);
+参数模式
+in： 该参数可以作为输入，也就是该参数需要调入传入值
+out：该参数可以作为输出，也就是该参数可以作为返回值
+inout：该参数既可以作为输入又可以作为输出，也就是该参数既需要传入值，又可以返回值
+
+2、 加入存储过程体仅仅只有一句话，begin END 可以省略
+存储过程体中的每条sql语句的结尾要求必须加分号
+存储过程的结尾可以使用delimiter重新设置
+语法：
+DELIMITER 结束标记
+案例：
+DELIMITER $
+
+# 二、 调用语法
+CALL 存储过程名(实参列表);
+
+# 1. 空参列表
+# 案例： 插入到admin表中五条记录
+SELECT * FROM admin;
+
+DELIMITER $
+CREATE PROCEDURE myp1()
+BEGIN
+	INSERT INTO admin(username, `password`) 
+	VALUES('join1','0000'),('join2','0000'),('join3','0000'),('join4','0000'),('join5','0000');
+END $
+
+# 调用
+CALL myp1();
+
+# 2. 创建带in模式参数的存储过程
+# 案例1 创建存储过程实现 根据女神名， 查询对应的男神信息
+DELIMITER $
+CREATE PROCEDURE myp2(IN beautyName VARCHAR(20))
+BEGIN
+	SELECT bo.*
+	FROM boys bo
+	RIGHT JOIN beauty b ON bo.id = b.boyfriend_id
+	WHERE b.name = beautyName;
+END $
+
+CALL myp2('柳岩');
+
+# 案例2： 创建存储国中实现，用户是否登录成功
+DELIMITER $
+CREATE PROCEDURE myp3(IN username VARCHAR(20), IN PASSWORD VARCHAR(20))
+BEGIN
+	DECLARE result INT DEFAULT 0; # 声明并且初始化
+	
+	SELECT COUNT(*) INTO result  # 赋值
+	FROM admin
+	WHERE admin.username = username
+	AND admin.`password` = PASSWORD;
+	
+	SELECT IF(result > 0, '成功', '失败');
+END $
+
+CALL myp3('john','8888');
+
+# 3、 创建带out模式的存储过程
+# 案例1： 根据女神名，返回对应的男神名
+DELIMITER $
+CREATE PROCEDURE myp5(IN beautyName VARCHAR(20), OUT boyName VARCHAR(20))
+BEGIN
+	SELECT bo.boyName INTO boyName
+	FROM boys bo
+	INNER JOIN beauty b ON bo.id = b.boyfriend_id
+	WHERE b.name = beautyName;
+END $
+
+# 调用
+SET @boName
+CALL myp5('柳岩', @boName)
+SELECT @boName
+
+# 案例2： 根据女神名返回对应的男神名和魅力值
+DELIMITER $
+CREATE PROCEDURE myp6(IN beautyName VARCHAR(20), OUT boyName VARCHAR(20), OUT userCP INT)
+BEGIN 
+	SELECT bo.boyName, bo.userCP INTO boyName, userCP
+	FROM boys bo
+	INNER JOIN beauty b ON bo.id = b.boyfriend_id
+	WHERE b.name = beautyName;
+END $
+
+# 调用
+SET @boyName
+SET @usercp
+CALL myp6('柳岩',@boyName, @usercp);
+SELECT @boyName, @usercp
+
+# 创建带inout模式参数的存储过程
+#案例1 存入a和b两个值，最终a和b都翻倍并且返回
+DELIMITER $
+CREATE PROCEDURE myp7(INOUT a INT, INOUT b INT)
+BEGIN
+	SET a = a * 2;
+	SET b = b * 2;
+END $
+
+SET @m = 10
+SET @n = 20
+CALL myp7(@m,@n)
+SELECT @m, @n
+
+
+# 删除存储过程
+语法： DROP PROCEDURE 存储过程 （一次只能删除一个）
+
+# 查看存储过程的信息
+SHOW CREATE PROCEDURE myp2;
+
+# 练习
+# 一、创建存储过程或函数实现传入用户名和密码，插入到admin中
+CREATE PROCEDURE test_pro1(IN username VARCHAR(20), IN loginPwd VARCHAR(20))
+BEGIN 
+	INSERT INTO admin(admin.username,PASSWORD)
+	VALUES(username, loginPwd);
+END
+# 二、创建存储过程或函数实现传入女神编号，返回女神名称和女神电话
+CREATE PROCEDURE test_pro2(IN id INT, OUT NAME VARCHAR(20), OUT phone VARCHAR(20))
+BEGIN 
+	SELECT NAME, phone INTO NAME, phone;
+	FROM beauty b
+	WHERE b.id = id;
+	
+END
+# 三、创建存储过程或函数实现传入两个女神生日，返回大小
+CREATE PROCEDURE test_pro3(IN birth1 DATETIME, IN birth2 DATETIME, OUT result INT)
+BEGIN
+	SELECT DATEDIFF(birth1, birth2) INT result;
+END
+
+# 四、创建存储过程或函数实现传入一个日期，格式化成xx年xx月xx日并且返回
+DELIMITER $
+CREATE PROCEDURE test_pro4(IN mydate DATETIME, OUT strDate VARCHAR(50))
+BEGIN
+	SELECT DATE_FORMAT(mydate, '%y年%m月%d日') INTO strDate;
+END $
+SET @str = NULL
+CALL test_pro4(NOW(),@str)
+SELECT @str;
+
+# 五、 创建存储过程或函数实现传入女神名称，返回： 女神and男神  格式的字符串
+如 传入 小昭
+返回： 小昭 AND 张无忌
+DELIMITER $
+CREATE PROCEDURE test_pro5(IN beautyName VARCHAR(20),  OUT str VARCHAR(50))
+BEGIN 
+	SELECT CONCAT(beautyName, ' and ', IFNULL(boyName, 'null')) INTO str
+	FROM boys bo
+	INNER JOIN beauty b ON b.boyfriend_id = bo.id
+	WHERE b.name = beautyName;
+END $
+
+SET @str = NULL
+CALL test_pro5('柳岩', @str)
+SELECT @str;
+
+# 六、 创建存储过程或函数，根据传入的条目数和起始索引，查询beauty表的记录
+DELIMITER $
+CREATE PROCEDURE test_pro6(IN size INT, IN startIndex INT)
+BEGIN
+	SELECT * FROM beauty LIMIT startIndex, size;
+END $
+
+CALL test_pro6(3,5)
+
+
