@@ -1,0 +1,194 @@
+# 存储过程和函数
+/*
+存储过程和函数，类似于java的方法
+好处：  提高代码的重用性
+	简化操作
+	减少了编译次数并且减少了和数据库服务器的连接次数，提高了效率
+*/
+# 存储过程
+/*
+含义： 一组预先编译好的sql语句的集合，理解成批处理语句
+好处：  提高代码的重用性
+	简化操作
+	减少了编译次数并且减少了和数据库服务器的连接次数，提高了效率
+*/
+
+# 一、 创建语法
+CREATE PROCEDURE 存储过程名（参数列表）
+BEGIN
+	存储过程体（一组合法的sql语句）
+END
+注意：
+1、 参数列表包含三部分
+参数模式 参数名 参数类型
+举例：
+in stuname varchar(20);
+参数模式
+in： 该参数可以作为输入，也就是该参数需要调入传入值
+out：该参数可以作为输出，也就是该参数可以作为返回值
+inout：该参数既可以作为输入又可以作为输出，也就是该参数既需要传入值，又可以返回值
+
+2、 加入存储过程体仅仅只有一句话，begin end 可以省略
+存储过程体中的每条sql语句的结尾要求必须加分号
+存储过程的结尾可以使用delimiter重新设置
+语法：
+delimiter 结束标记
+案例：
+delimiter $
+
+# 二、 调用语法
+call 存储过程名(实参列表);
+
+# 1. 空参列表
+# 案例： 插入到admin表中五条记录
+select * from admin;
+
+delimiter $
+create procedure myp1()
+begin
+	insert into admin(username, `password`) 
+	values('join1','0000'),('join2','0000'),('join3','0000'),('join4','0000'),('join5','0000');
+end $
+
+# 调用
+call myp1();
+
+# 2. 创建带in模式参数的存储过程
+# 案例1 创建存储过程实现 根据女神名， 查询对应的男神信息
+delimiter $
+create procedure myp2(in beautyName varchar(20))
+begin
+	select bo.*
+	from boys bo
+	right join beauty b on bo.id = b.boyfriend_id
+	where b.name = beautyName;
+end $
+
+call myp2('柳岩');
+
+# 案例2： 创建存储国中实现，用户是否登录成功
+DELIMITER $
+create procedure myp3(in username varchar(20), in password varchar(20))
+begin
+	declare result int default 0; # 声明并且初始化
+	
+	select count(*) into result  # 赋值
+	from admin
+	where admin.username = username
+	and admin.`password` = password;
+	
+	select if(result > 0, '成功', '失败');
+end $
+
+call myp3('john','8888');
+
+# 3、 创建带out模式的存储过程
+# 案例1： 根据女神名，返回对应的男神名
+delimiter $
+create procedure myp5(in beautyName varchar(20), out boyName varchar(20))
+begin
+	select bo.boyName into boyName
+	from boys bo
+	inner join beauty b on bo.id = b.boyfriend_id
+	where b.name = beautyName;
+end $
+
+# 调用
+set @boName
+call myp5('柳岩', @boName)
+select @boName
+
+# 案例2： 根据女神名返回对应的男神名和魅力值
+delimiter $
+create procedure myp6(in beautyName varchar(20), out boyName varchar(20), out userCP int)
+begin 
+	SELECT bo.boyName, bo.userCP into boyName, userCP
+	FROM boys bo
+	INNER JOIN beauty b ON bo.id = b.boyfriend_id
+	WHERE b.name = beautyName;
+end $
+
+# 调用
+set @boyName
+set @usercp
+call myp6('柳岩',@boyName, @usercp);
+select @boyName, @usercp
+
+# 创建带inout模式参数的存储过程
+#案例1 存入a和b两个值，最终a和b都翻倍并且返回
+delimiter $
+create procedure myp7(inout a int, inout b int)
+begin
+	set a = a * 2;
+	set b = b * 2;
+end $
+
+set @m = 10
+set @n = 20
+call myp7(@m,@n)
+select @m, @n
+
+
+# 删除存储过程
+语法： DROP PROCEDURE 存储过程 （一次只能删除一个）
+
+# 查看存储过程的信息
+SHOW CREATE PROCEDURE myp2;
+
+# 练习
+# 一、创建存储过程或函数实现传入用户名和密码，插入到admin中
+create procedure test_pro1(in username varchar(20), in loginPwd varchar(20))
+begin 
+	insert into admin(admin.username,password)
+	values(username, loginPwd);
+end
+# 二、创建存储过程或函数实现传入女神编号，返回女神名称和女神电话
+create procedure test_pro2(in id int, out name varchar(20), out phone varchar(20))
+begin 
+	select name, phone into name, phone;
+	from beauty b
+	where b.id = id;
+	
+end
+# 三、创建存储过程或函数实现传入两个女神生日，返回大小
+create procedure test_pro3(in birth1 datetime, in birth2 datetime, out result int)
+begin
+	select datediff(birth1, birth2) int result;
+end
+
+# 四、创建存储过程或函数实现传入一个日期，格式化成xx年xx月xx日并且返回
+delimiter $
+create procedure test_pro4(in mydate datetime, out strDate varchar(50))
+begin
+	select date_format(mydate, '%y年%m月%d日') into strDate;
+end $
+set @str = null
+call test_pro4(now(),@str)
+select @str;
+
+# 五、 创建存储过程或函数实现传入女神名称，返回： 女神and男神  格式的字符串
+如 传入 小昭
+返回： 小昭 and 张无忌
+delimiter $
+create procedure test_pro5(in beautyName varchar(20),  out str varchar(50))
+begin 
+	select concat(beautyName, ' and ', ifnull(boyName, 'null')) into str
+	from boys bo
+	inner join beauty b on b.boyfriend_id = bo.id
+	where b.name = beautyName;
+end $
+
+set @str = null
+call test_pro5('柳岩', @str)
+select @str;
+
+# 六、 创建存储过程或函数，根据传入的条目数和起始索引，查询beauty表的记录
+delimiter $
+create procedure test_pro6(in size int, in startIndex int)
+begin
+	select * from beauty limit startIndex, size;
+end $
+
+call test_pro6(3,5)
+
+
